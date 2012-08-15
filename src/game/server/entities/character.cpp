@@ -363,8 +363,9 @@ void CCharacter::FireWeapon()
 					pTarget->UnFreeze();
 				if(!pTarget->m_AfterUnfreezeTimer)
 				{
-					pTarget->m_BlockedBy = m_pPlayer->GetCID();
-					pTarget->m_BlockingTimer = GameServer()->Server()->TickSpeed() * HAMMER_MAX_REGISTER_TIME;
+					if (!(pTarget->m_pPlayer->m_PlayerFlags&PLAYERFLAG_CHATTING))
+						pTarget->m_BlockedBy = m_pPlayer->GetCID();
+					pTarget->m_BlockingTimer = Server()->TickSpeed() * HAMMER_MAX_REGISTER_TIME;
 				}
 				Hits++;
 			}
@@ -636,7 +637,7 @@ void CCharacter::Tick()
 	if (m_Core.m_HookedPlayer != -1 && GameServer()->m_apPlayers[m_Core.m_HookedPlayer])
 	{
 		CPlayer *pPlayer =  GameServer()->m_apPlayers[m_Core.m_HookedPlayer];
-		if (!pPlayer->GetCharacter()->m_AfterUnfreezeTimer && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_FreezeTime == 0)
+		if (pPlayer->GetCharacter() && !pPlayer->GetCharacter()->m_AfterUnfreezeTimer && pPlayer->GetCharacter()->m_FreezeTime == 0)
 		{
 			if (!(pPlayer->m_PlayerFlags&PLAYERFLAG_CHATTING))
 				pPlayer->GetCharacter()->m_BlockedBy = m_pPlayer->GetCID();

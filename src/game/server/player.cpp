@@ -289,6 +289,7 @@ void CPlayer::Snap(int SnappingClient)
 
 void CPlayer::OnDisconnect(const char *pReason)
 {
+	GameServer()->MemberList->Save(m_ClientID, GameServer());
 	KillCharacter();
 
 	if(Server()->ClientIngame(m_ClientID))

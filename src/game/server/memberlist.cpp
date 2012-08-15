@@ -20,11 +20,12 @@ std::string SaveMemberFile()
 	return oss.str();
 }
 
-CMemberList::CPlayerMember::CPlayerMember(const char *pName, const char *pPass, int AuthLvl)
+CMemberList::CPlayerMember::CPlayerMember(const char *pName, const char *pPass, int AuthLvl, int Money)
 {
 	str_copy(m_aName, pName, sizeof(m_aName));
 	str_copy(m_aPass, pPass, sizeof(m_aPass));
 	m_AuthLvl = clamp(AuthLvl, -1, 3); //TODO: XXLTomate: AUTHED_ADMIN
+	m_Money = Money;
 }
 
 CMemberList::CMemberList(CGameContext *pGameServer) : m_pGameServer(pGameServer), m_pServer((CServer*)pGameServer->Server())
@@ -53,13 +54,14 @@ void CMemberList::Init()
 
 	while(!f.eof() && !f.fail())
 	{
-		std::string TmpName, TmpPass, TmpAuthLvl;
+		std::string TmpName, TmpPass, TmpAuthLvl, TmpMoney;
 		std::getline(f, TmpName);
 		if(!f.eof() && TmpName != "")
 		{
 			std::getline(f, TmpPass);
 			std::getline(f, TmpAuthLvl);
-			m_List.add(*new CPlayerMember(TmpName.c_str(), TmpPass.c_str(), atoi(TmpAuthLvl.c_str())));
+			std::getline(f, TmpMoney);
+			m_List.add(*new CPlayerMember(TmpName.c_str(), TmpPass.c_str(), atoi(TmpAuthLvl.c_str()), atoi(TmpMoney.c_str())));
 		}
 	}
 	f.close();
@@ -78,7 +80,7 @@ void CMemberList::SaveListThread(void *pUser)
 		int t = 0;
 		for(sorted_array<CPlayerMember>::range r = pSelf->m_List.all(); !r.empty(); r.pop_front())
 		{
-			f << r.front().m_aName << std::endl << r.front().m_aPass << std::endl << r.front().m_AuthLvl << std::endl;
+			f << r.front().m_aName << std::endl << r.front().m_aPass << std::endl << r.front().m_AuthLvl << std::endl << r.front().m_Money << std::endl;
 			t++;
 			if(t%50 == 0)
 				thread_sleep(1);
@@ -127,7 +129,7 @@ CMemberList::CPlayerMember *CMemberList::SearchName(const char *pName, int *pPos
 	return pPlayer;
 }
 
-void CMemberList::UpdatePlayer(int ClientID, const char* pPass, int AuthLvl)
+void CMemberList::UpdatePlayer(int ClientID, const char* pPass, int AuthLvl, int Money)
 {
 	const char *pName = Server()->ClientName(ClientID);
 	lock_wait(gs_MemberLock);
@@ -135,6 +137,7 @@ void CMemberList::UpdatePlayer(int ClientID, const char* pPass, int AuthLvl)
 
 	if(pPlayer)
 	{
+		pPlayer->m_Money = Money;
 		pPlayer->m_AuthLvl = clamp(AuthLvl, -1, (int)m_pServer->AUTHED_ADMIN);
 		str_copy(pPlayer->m_aName, pName, sizeof(pPlayer->m_aName));
 		str_copy(pPlayer->m_aPass, pPass, sizeof(pPlayer->m_aPass));
@@ -142,7 +145,7 @@ void CMemberList::UpdatePlayer(int ClientID, const char* pPass, int AuthLvl)
 		sort(m_List.all());
 	}
 	else
-		m_List.add(*new CPlayerMember(pName, pPass, AuthLvl));
+		m_List.add(*new CPlayerMember(pName, pPass, AuthLvl, Money));
 
 	lock_release(gs_MemberLock);
 	Save();
@@ -155,30 +158,32 @@ void CMemberList::LoadMember(int ClientID, CGameContext *pSelf)
 	if(pPlayer)
 	{
 		if (pSelf->m_apPlayers[ClientID]->m_Authed > pPlayer->m_AuthLvl && pSelf->m_apPlayers[ClientID]->m_Authed != 0)
+		{
 			pPlayer->m_AuthLvl = pSelf->m_apPlayers[ClientID]->m_Authed;
-		lock_wait(gs_MemberLock);
-		lock_release(gs_MemberLock);
-		Save();
+			lock_wait(gs_MemberLock);
+			lock_release(gs_MemberLock);
+			Save();
+		}
 
 		// set Level
 		if (pPlayer->m_AuthLvl > m_pServer->AUTHED_NO)
 		{
-			char buf[128]="Authentication successful. Remote console access granted for ClientID=%d with level=%d";
+			char buf[128]="Authentication successful. Remote console access granted for ClientID=%d with level=%d - Your money=%d";
 			pSelf->Server()->SetRconLevel(ClientID,pPlayer->m_AuthLvl);
-			str_format(buf,sizeof(buf),buf,ClientID,pPlayer->m_AuthLvl);
+			str_format(buf,sizeof(buf),buf,ClientID,pPlayer->m_AuthLvl,pPlayer->m_Money);
 			pSelf->Server()->SendRconLine(ClientID, buf);
-			dbg_msg("server", "'%s' ClientID=%d authed with Level=%d", pSelf->Server()->ClientName(ClientID), ClientID, pPlayer->m_AuthLvl);
+			dbg_msg("server", "'%s' ClientID=%d authed with Level=%d and Money=%d", pSelf->Server()->ClientName(ClientID), ClientID, pPlayer->m_AuthLvl, pPlayer->m_Money);
 		}
 	}
 }
 
-void CMemberList::SaveList(int ClientID, const char* pPass, CGameContext *pSelf, bool ForceAuth)
+void CMemberList::SaveList(int ClientID, const char* pPass, CGameContext *pSelf, bool ForceAuth, int Money)
 {
 	CPlayerMember *pPlayer = SearchList(ClientID, 0);
 	int SetAuthLvl = -1;
 
 	if(ForceAuth){
-		UpdatePlayer(ClientID, pPass, SetAuthLvl);
+		UpdatePlayer(ClientID, pPass, SetAuthLvl, Money);
 		return;
 	}
 
@@ -196,7 +201,7 @@ void CMemberList::SaveList(int ClientID, const char* pPass, CGameContext *pSelf,
 		else
 			SetAuthLvl = pPlayer->m_AuthLvl;
 	}
-	UpdatePlayer(ClientID, pPass, SetAuthLvl);
+	UpdatePlayer(ClientID, pPass, SetAuthLvl, Money);
 }
 
 void CMemberList::Register(IConsole::IResult *pResult, int ClientID, const char* pPass, CGameContext *pSelf)
@@ -206,7 +211,7 @@ void CMemberList::Register(IConsole::IResult *pResult, int ClientID, const char*
 
 	if (!pPlayer)
 	{
-		SaveList(ClientID, md5(pPass).c_str(), pSelf, false);
+		SaveList(ClientID, md5(pPass).c_str(), pSelf, false, pSelf->m_apPlayers[ClientID]->m_Money);
 		str_format(aBuf, sizeof(aBuf), "Registration successful.");
 	}
 	else
@@ -226,7 +231,8 @@ void CMemberList::Login(IConsole::IResult *pResult, int ClientID, const char* pP
 	{
 		pPlayer->m_AuthLvl = pSelf->m_apPlayers[ClientID]->m_Authed;
 		pSelf->m_apPlayers[ClientID]->m_IsMember = true;
-		SaveList(ClientID, pPlayer->m_aPass , pSelf, false);
+		pSelf->m_apPlayers[ClientID]->m_Money = pPlayer->m_Money;
+		SaveList(ClientID, pPlayer->m_aPass , pSelf, false, pPlayer->m_Money);
 		str_format(aBuf, sizeof(aBuf), "Level updated.");
 	}
 	else if(pSelf->m_apPlayers[ClientID]->m_IsLoggedIn)
@@ -238,6 +244,7 @@ void CMemberList::Login(IConsole::IResult *pResult, int ClientID, const char* pP
 			LoadMember(ClientID,pSelf);
 			pSelf->m_apPlayers[ClientID]->m_IsLoggedIn = true;
 			str_format(aBuf, sizeof(aBuf), "Login successful.");
+			pSelf->m_apPlayers[ClientID]->m_Money = pPlayer->m_Money;
 			if (pPlayer->m_AuthLvl >= 0)
 				pSelf->m_apPlayers[ClientID]->m_IsMember = true;
 		}
@@ -245,6 +252,16 @@ void CMemberList::Login(IConsole::IResult *pResult, int ClientID, const char* pP
 			str_format(aBuf, sizeof(aBuf), "Wrong password.");
 	}
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "member", aBuf);
+}
+
+void CMemberList::Save(int ClientID, CGameContext *pSelf)
+{
+	CPlayerMember *pPlayer = SearchList(ClientID, 0);
+
+	if (pPlayer)
+	{
+		SaveList(ClientID, pPlayer->m_aPass, pSelf, false, pSelf->m_apPlayers[ClientID]->m_Money);
+	}
 }
 
 void CMemberList::Member(int ClientID, CGameContext *pSelf)
@@ -265,7 +282,7 @@ void CMemberList::Member(int ClientID, CGameContext *pSelf)
 			str_format(aBuf, sizeof(aBuf), "%s is NOW member.", pSelf->Server()->ClientName(ClientID));
 			pPlayer->m_AuthLvl = 0;//Set member
 			pSelf->m_apPlayers[ClientID]->m_IsMember = true; //Set member
-			SaveList(ClientID, pPlayer->m_aPass , pSelf, false); //Save to file
+			SaveList(ClientID, pPlayer->m_aPass , pSelf, false, pPlayer->m_Money); //Save to file
 		}
 	}
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "member", aBuf);
@@ -289,7 +306,7 @@ void CMemberList::UnMember(int ClientID, CGameContext *pSelf)
 			str_format(aBuf, sizeof(aBuf), "%s is NOW unmembered.", pSelf->Server()->ClientName(ClientID));
 			pPlayer->m_AuthLvl = m_pServer->AUTHED_NO;
 			pSelf->m_apPlayers[ClientID]->m_IsMember = false;
-			SaveList(ClientID, pPlayer->m_aPass , pSelf, true);
+			SaveList(ClientID, pPlayer->m_aPass , pSelf, true, pPlayer->m_Money);
 		}
 	}
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "member", aBuf);
