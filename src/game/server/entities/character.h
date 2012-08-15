@@ -74,7 +74,7 @@ private:
 	bool m_Alive;
 	bool m_Paused;
 	
-	#define MIN_WAIT_AFTER_UNFREEZE 0.5;
+	#define MIN_WAIT_AFTER_UNFREEZE 1;
 	#define HOOK_MAX_REGISTER_TIME 1;
 	#define HAMMER_MAX_REGISTER_TIME 1;
 
