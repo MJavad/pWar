@@ -8,6 +8,7 @@
 #include "character.h"
 #include "laser.h"
 #include "projectile.h"
+#include "pickup.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -360,7 +361,11 @@ void CCharacter::FireWeapon()
 					pTarget->Freeze();
 				else
 					pTarget->UnFreeze();
-
+				if(!pTarget->m_AfterUnfreezeTimer)
+				{
+					pTarget->m_BlockedBy = m_pPlayer->GetCID();
+					pTarget->m_BlockingTimer = GameServer()->Server()->TickSpeed() * HAMMER_MAX_REGISTER_TIME;
+				}
 				Hits++;
 			}
 
@@ -372,6 +377,7 @@ void CCharacter::FireWeapon()
 
 		case WEAPON_GUN:
 		{
+			bool Freeze = false;
 			CProjectile *pProj = new CProjectile
 					(
 					GameWorld(),
@@ -380,7 +386,7 @@ void CCharacter::FireWeapon()
 					ProjStartPos,//Pos
 					Direction,//Dir
 					(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GunLifetime),//Span
-					0,//Freeze
+					Freeze,//Freeze
 					0,//Explosive
 					0,//Force
 					-1,//SoundImpact
@@ -627,6 +633,25 @@ void CCharacter::ResetInput()
 
 void CCharacter::Tick()
 {
+	if (m_Core.m_HookedPlayer != -1 && GameServer()->m_apPlayers[m_Core.m_HookedPlayer])
+	{
+		CPlayer *pPlayer =  GameServer()->m_apPlayers[m_Core.m_HookedPlayer];
+		if (!pPlayer->GetCharacter()->m_AfterUnfreezeTimer && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_FreezeTime == 0)
+		{
+			if (!(pPlayer->m_PlayerFlags&PLAYERFLAG_CHATTING))
+				pPlayer->GetCharacter()->m_BlockedBy = m_pPlayer->GetCID();
+				
+			pPlayer->GetCharacter()->m_BlockingTimer = Server()->TickSpeed() * HOOK_MAX_REGISTER_TIME;
+		}
+	}
+	
+	if (m_BlockingTimer)
+		m_BlockingTimer--;
+	else
+		m_BlockedBy = -1;
+
+	if (m_AfterUnfreezeTimer)
+		m_AfterUnfreezeTimer--;
 	/*if(m_pPlayer->m_ForceBalanced)
 	{
 		char Buf[128];
@@ -1837,6 +1862,27 @@ bool CCharacter::Freeze(int Seconds)
 				 m_aWeapons[i].m_Ammo = 0;
 			 }
 		m_Armor = 0;
+
+		if (m_BlockedBy != -1 && m_FreezeTime == 0)
+		{
+			CCharacter *pChr = GameServer()->m_apPlayers[m_BlockedBy]->GetCharacter();
+			CPickup *pPickup = 0;
+			if ((GameServer()->m_apPlayers[m_BlockedBy]->m_Team2 != m_pPlayer->m_Team2 || m_pPlayer->m_Team2 == 1))
+			{
+				if (m_pPlayer->m_Money >= 2)
+				{
+					vec2 Vel = vec2();
+					pPickup = new CPickup(&GameServer()->m_World, POWERUP_ARMOR, 2, 0, 0, true, m_Core.m_Vel*-2.0f, Server()->TickSpeed()*7, Server()->TickSpeed()*1, m_pPlayer->GetCID());
+					m_pPlayer->m_Money -= 2;
+				}
+				if (pPickup)
+					pPickup->m_Pos = vec2(m_Pos.x, m_Pos.y);
+			}
+		}
+		else if (m_BlockingTimer && m_FreezeTime == 0)
+		{
+			GameServer()->CreateLolText(this, false, vec2(0, -50), vec2(0, -3), 50, "CHAT KILLER!");
+		}
 		m_FreezeTime = Seconds == -1 ? Seconds : Seconds * Server()->TickSpeed();
 		m_FreezeTick = Server()->Tick();
 		return true;
@@ -1863,6 +1909,7 @@ bool CCharacter::UnFreeze()
 			m_ActiveWeapon = WEAPON_GUN;
 		m_FreezeTime = 0;
 		m_FreezeTick = 0;
+		m_AfterUnfreezeTimer = Server()->TickSpeed() * MIN_WAIT_AFTER_UNFREEZE;
 		if (m_ActiveWeapon==WEAPON_HAMMER) m_ReloadTimer = 0;
 		 return true;
 	}

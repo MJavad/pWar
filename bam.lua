@@ -289,10 +289,10 @@ function build(settings)
 		client_link_other, client_osxlaunch)
 
 	if arch == "amd64" then
-		server_exe = Link(server_settings, "XXLDDRace-Server_64", engine, server,
+		server_exe = Link(server_settings, "pWar-Server_64", engine, server,
 		game_shared, game_server, zlib, md5, server_link_other)
 	else
-		server_exe = Link(server_settings, "XXLDDRace-Server_32", engine, server,
+		server_exe = Link(server_settings, "pWar-Server_32", engine, server,
 		game_shared, game_server, zlib, md5, server_link_other)
 	end
 	

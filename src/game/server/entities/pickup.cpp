@@ -6,16 +6,19 @@
 
 #include <game/server/teams.h>
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int Layer, int Number)
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int Layer, int Number, bool Move, vec2 Vel, int LifeSpan, int InactiveTime, int Owner)
 : CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP)
 {
 	m_Type = Type;
 	m_Subtype = SubType;
 	m_ProximityRadius = PickupPhysSize;
-
+	m_Move = Move;
+	m_Vel = Vel;
 	m_Layer = Layer;
 	m_Number = Number;
-
+	m_Owner = Owner;
+	m_InactiveTime = InactiveTime;
+	m_LifeSpan = LifeSpan;
 	Reset();
 
 	GameWorld()->InsertEntity(this);
@@ -47,7 +50,17 @@ void CPickup::Tick()
 			return;
 	}*/
 	// Check if a player intersected us
+	if (m_InactiveTime)
+		m_InactiveTime--;
 	CCharacter *apEnts[MAX_CLIENTS];
+	if (m_LifeSpan > 0)
+		m_LifeSpan--;
+	else if(m_LifeSpan == 0)
+	{
+		if(m_Type == POWERUP_ARMOR && m_Subtype != 0)
+			GameServer()->m_apPlayers[m_Owner]->m_Money += m_Subtype;
+		GameServer()->m_World.DestroyEntity(this);
+	}
 	int Num = GameWorld()->FindEntities(m_Pos, 20.0f, (CEntity**)apEnts, 64, CGameWorld::ENTTYPE_CHARACTER);
 	for(int i = 0; i < Num; ++i) {
 		CCharacter * pChr = apEnts[i];
@@ -63,7 +76,12 @@ void CPickup::Tick()
 					break;
 
 				case POWERUP_ARMOR:
-					if(pChr->Team() == TEAM_SUPER) continue;
+					if (m_Subtype != 0 && pChr->GetPlayer()->GetCID() != m_Owner && !m_InactiveTime && pChr->m_FreezeTime == 0){
+						GameServer()->GiveMoney(pChr->GetPlayer()->GetCID(), m_Subtype);
+						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
+						GameServer()->m_World.DestroyEntity(this);
+					}
+					if(pChr->Team() == TEAM_SUPER || m_Subtype != 0) continue;
 					for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
 					{
 						if(pChr->GetWeaponGot(i))
@@ -170,6 +188,11 @@ void CPickup::Snap(int SnappingClient)
 
 void CPickup::Move()
 {
+	if (m_Move)
+	{
+		m_Vel.y += GameServer()->m_World.m_Core.m_Tuning.m_Gravity;
+		GameServer()->Collision()->MoveBox(&m_Pos, &m_Vel, vec2(m_ProximityRadius, m_ProximityRadius), 0.7f);
+	}
 	if (Server()->Tick()%int(Server()->TickSpeed() * 0.15f) == 0)
 	{
 		int Flags;

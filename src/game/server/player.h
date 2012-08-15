@@ -49,12 +49,16 @@ public:
 
 	// states if the client is chatting, accessing a menu etc.
 	int m_PlayerFlags;
+	int m_Money;
+	
 
 	// used for snapping to just update latency if the scoreboard is active
 	int m_aActLatency[MAX_CLIENTS];
 
 	// used for spectator mode
 	int m_SpectatorID;
+	
+	int m_Team2;
 
 	bool m_IsReady;
 
@@ -65,6 +69,7 @@ public:
 	int m_LastVoteCall;
 	int m_LastVoteTry;
 	int m_LastChat;
+	int m_LastJoin;
 	int m_LastSetTeam;
 	int m_LastSetSpectatorMode;
 	int m_LastChangeInfo;

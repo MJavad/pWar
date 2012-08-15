@@ -131,6 +131,7 @@ public:
 	void CreateDeath(vec2 Pos, int Who, int Mask=-1);
 	void CreateSound(vec2 Pos, int Sound, int Mask=-1);
 	void CreateSoundGlobal(int Sound, int Target=-1);
+	void GiveMoney(int ID, int Amount);
 
 
 	enum
@@ -217,6 +218,7 @@ private:
 	static void ConGoRight(IConsole::IResult *pResult, void *pUserData);
 	static void ConGoUp(IConsole::IResult *pResult, void *pUserData);
 	static void ConGoDown(IConsole::IResult *pResult, void *pUserData);
+	static void ConMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConMove(IConsole::IResult *pResult, void *pUserData);
 	static void ConMoveRaw(IConsole::IResult *pResult, void *pUserData);
 
@@ -237,7 +239,10 @@ private:
 	#endif
 
 	static void ConUTF8(IConsole::IResult *pResult, void *pUserData);
+	static void ConBuy(IConsole::IResult *pResult, void *pUserData);
+	//static void ConCFgun(IConsole::IResult *pResult, void *pUserData);
 	static void ConRank(IConsole::IResult *pResult, void *pUserData);
+	static void ConJoin(IConsole::IResult *pResult, void *pUserData);
 	static void ConBroadTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConMe(IConsole::IResult *pResult, void *pUserData);

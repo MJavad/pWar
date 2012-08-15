@@ -73,6 +73,14 @@ private:
 
 	bool m_Alive;
 	bool m_Paused;
+	
+	#define MIN_WAIT_AFTER_UNFREEZE 0.5;
+	#define HOOK_MAX_REGISTER_TIME 1;
+	#define HAMMER_MAX_REGISTER_TIME 1;
+
+	int m_BlockedBy;
+	int m_BlockingTimer;
+	int m_AfterUnfreezeTimer;
 
 	// weapon info
 	CEntity *m_apHitObjects[10];
@@ -262,7 +270,7 @@ enum
 {
 	DDRACE_NONE = 0,
 	DDRACE_STARTED,
-	DDRACE_CHEAT, // no time and won't start again unless ordered by a mod or death
+	DDRACE_CHEAT = DDRACE_STARTED, // no time and won't start again unless ordered by a mod or death
 	DDRACE_FINISHED
 };
 

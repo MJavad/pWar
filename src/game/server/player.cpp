@@ -24,11 +24,14 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_DieTick = Server()->Tick();
 	m_ScoreStartTick = Server()->Tick();
 	m_pCharacter = 0;
+	m_Money = 10;
 	m_ClientID = ClientID;
 	m_Team = GameServer()->m_pController->ClampTeam(Team);
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
+	m_Team2 = 0;
+	m_LastJoin = 0;
 
 	// DDRace
 
@@ -211,9 +214,39 @@ void CPlayer::Snap(int SnappingClient)
 	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
 	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
-	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
-	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
+	if (m_Team2 == 0 || m_Team2 == 1){
+		pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
+		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
+		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
+	}
+	if (m_Team2 == 2)
+	{
+		StrToInts(&pClientInfo->m_Skin0, 6, "default");
+		pClientInfo->m_UseCustomColor = 1;
+		pClientInfo->m_ColorBody = 65280;
+		pClientInfo->m_ColorFeet = pClientInfo->m_ColorBody;
+	}
+	if (m_Team2 == 3)
+	{
+		StrToInts(&pClientInfo->m_Skin0, 6, "default");
+		pClientInfo->m_UseCustomColor = 1;
+		pClientInfo->m_ColorBody = 4456192;
+		pClientInfo->m_ColorFeet = pClientInfo->m_ColorBody;
+	}
+	if (m_Team2 == 4)
+	{
+		StrToInts(&pClientInfo->m_Skin0, 6, "default");
+		pClientInfo->m_UseCustomColor = 1;
+		pClientInfo->m_ColorBody = 10288896;
+		pClientInfo->m_ColorFeet = pClientInfo->m_ColorBody;
+	}
+	if (m_Team2 == 5)
+	{
+		StrToInts(&pClientInfo->m_Skin0, 6, "default");
+		pClientInfo->m_UseCustomColor = 1;
+		pClientInfo->m_ColorBody = 2948864;
+		pClientInfo->m_ColorFeet = pClientInfo->m_ColorBody;
+	}
 
 	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, m_ClientID, sizeof(CNetObj_PlayerInfo)));
 	if(!pPlayerInfo)
@@ -226,7 +259,7 @@ void CPlayer::Snap(int SnappingClient)
 	if (g_Config.m_SvRconScore)
 		pPlayerInfo->m_Score = m_Score;
 	else
-		pPlayerInfo->m_Score = abs(m_Score) * -1;
+		pPlayerInfo->m_Score = abs(m_Score) * 1;
 		
 	pPlayerInfo->m_Team = (m_Paused != PAUSED_SPEC || m_ClientID != SnappingClient) && m_Paused < PAUSED_PAUSED ? m_Team : TEAM_SPECTATORS;
 
@@ -251,7 +284,7 @@ void CPlayer::Snap(int SnappingClient)
 		if (g_Config.m_SvRconScore)
 			pPlayerInfo->m_Score = m_Score;
 		else
-			pPlayerInfo->m_Score = abs(m_Score) * -1;
+			pPlayerInfo->m_Score = abs(m_Score) * 1;
 }
 
 void CPlayer::OnDisconnect(const char *pReason)

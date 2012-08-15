@@ -226,6 +226,11 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, int Mask)
 	}
 }
 
+void CGameContext::GiveMoney(int ID, int Amount)
+{
+	m_apPlayers[ID]->m_Money += Amount;
+}
+
 void CGameContext::CreateSoundGlobal(int Sound, int Target)
 {
 	if (Sound < 0)
@@ -721,8 +726,8 @@ void CGameContext::OnClientEnter(int ClientID)
 void CGameContext::OnClientConnected(int ClientID)
 {
 	// Check which team the player should be on
-	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
-
+	//const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
+	int StartTeam = TEAM_SPECTATORS;
 	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
 	//players[client_id].init(client_id);
 	//players[client_id].client_id = client_id;
@@ -873,7 +878,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		else
 		{
 			if(!str_comp_nocase(pMsg->m_pMessage, "lol") && g_Config.m_SvLolFilter)
-				SendChat(ClientID, Team, "I like turtles.", ClientID);
+				SendChat(ClientID, Team, "I like pWar.", ClientID);
 			else if(!str_comp_nocase(pMsg->m_pMessage, "help") && g_Config.m_SvHelper)
 			{
 				SendChat(ClientID, Team, pMsg->m_pMessage, ClientID);
@@ -1153,7 +1158,10 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				//pPlayer->m_LastSetTeam = Server()->Tick();
 				if(pPlayer->GetTeam() == TEAM_SPECTATORS || pMsg->m_Team == TEAM_SPECTATORS)
 					m_VoteUpdate = true;
-				pPlayer->SetTeam(pMsg->m_Team);
+				if (pPlayer->m_Team2 == 0)
+					SendBroadcast("First join a team", ClientID);
+				else
+					pPlayer->SetTeam(pMsg->m_Team);
 				//(void)m_pController->CheckTeamBalance();
 				pPlayer->m_TeamChangeTick = Server()->Tick();
 			}

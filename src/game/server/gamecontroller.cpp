@@ -605,6 +605,17 @@ bool IGameController::CanBeMovedOnBalance(int ClientID)
 
 void IGameController::Tick()
 {
+	for (int i=0; i < MAX_CLIENTS; i++){
+		if (GameServer()->m_apPlayers[i]){
+			char Bufs[256];str_format(Bufs, sizeof(Bufs), "Team %d", GameServer()->m_apPlayers[i]->m_Team2);
+			GameServer()->Server()->SetClientClan(i, Bufs);
+			GameServer()->m_apPlayers[i]->m_Score = GameServer()->m_apPlayers[i]->m_Money;
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "Your Money : %d\nYour Team : %d", GameServer()->m_apPlayers[i]->m_Money, GameServer()->m_apPlayers[i]->m_Team2);
+			GameServer()->SendBroadcast(aBuf, i);
+		}
+	}
+	
 	// do warmup
 	if(m_Warmup)
 	{
