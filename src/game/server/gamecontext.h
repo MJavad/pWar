@@ -234,6 +234,7 @@ private:
 	static void ConToggleSpec(IConsole::IResult *pResult, void *pUserData);
 	static void ConForcePause(IConsole::IResult *pResult, void *pUserData);
 	static void ConTop5(IConsole::IResult *pResult, void *pUserData);
+	static void ConPay(IConsole::IResult *pResult, void *pUserData);
 	#if defined(CONF_SQL)
 	static void ConTimes(IConsole::IResult *pResult, void *pUserData);
 	#endif

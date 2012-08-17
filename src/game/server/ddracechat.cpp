@@ -78,6 +78,52 @@ void CGameContext::ConJoin(IConsole::IResult *pResult, void *pUserData)
 	
 }
 
+void CGameContext::ConPay(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	int ID = pResult->m_ClientID;
+	int To = -1;
+	int Amount = pResult->GetInteger(0);
+	char aBuf[128];
+	str_format(aBuf, 128, "%s", pResult->GetString(1));
+	int len = str_length(aBuf);
+	if (aBuf[len-1] == ' ')
+		aBuf[len-1] = 0;
+	for (int i = 0; i < MAX_CLIENTS; i++)
+		if (!str_comp_nocase(pSelf->Server()->ClientName(i), aBuf))
+		{
+			To = i;
+			break;
+		}
+	if (To == -1)
+	{
+		pSelf->SendChatTarget(ID, "Player not found");
+		return;
+	}
+	if (To == ID)
+	{
+		pSelf->SendChatTarget(ID, "You can't give money to yourself");
+		return;
+	}
+	if (Amount <= 0)
+	{
+		pSelf->SendChatTarget(ID, "Wrong amount given");
+		return;
+	}
+	if (pSelf->m_apPlayers[ID]->m_Money < Amount)
+	{
+		pSelf->SendChatTarget(ID, "You don't have enough money");
+		return;
+	}
+	pSelf->m_apPlayers[ID]->m_Money -= Amount;
+	pSelf->m_apPlayers[To]->m_Money += Amount;
+	char aChatMsg[512];
+	str_format(aChatMsg, 512, "You paid '%s' %d$", pSelf->Server()->ClientName(To), Amount);
+	pSelf->SendChatTarget(ID, aChatMsg);
+	str_format(aChatMsg, 512, "'%s' gave you %d$", pSelf->Server()->ClientName(ID), Amount);
+	pSelf->SendChatTarget(To, aChatMsg);
+}
+
 /*void CGameContext::ConCRainbow(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
