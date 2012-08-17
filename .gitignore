@@ -9,21 +9,7 @@ SDL.dll
 freetype.dll
 autoexec.cfg
 
-crapnet*
-dilate*
-fake_server*
-map_resave*
-map_version*
-mastersrv*
-packetgen*
-tileset_border*
-versionsrv*
-
-Debug
-bam
-build server.bat
 buildlog.txt
-autoexec.cfg
 bam.exe
 *.bat
 *.cmd
@@ -48,4 +34,3 @@ bam.exe
 .settings
 *.opensdf
 *.orig
-DDRace*
