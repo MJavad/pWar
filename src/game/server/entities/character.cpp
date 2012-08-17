@@ -1868,13 +1868,19 @@ bool CCharacter::Freeze(int Seconds)
 		{
 			CCharacter *pChr = GameServer()->m_apPlayers[m_BlockedBy]->GetCharacter();
 			CPickup *pPickup = 0;
-			if ((GameServer()->m_apPlayers[m_BlockedBy]->m_Team2 != m_pPlayer->m_Team2 || m_pPlayer->m_Team2 == 1))
+			if ((GameServer()->m_apPlayers[m_BlockedBy]->m_Team2 != m_pPlayer->m_Team2 || m_pPlayer->m_Team2 == 0))
 			{
 				if (m_pPlayer->m_Money >= 2)
 				{
 					vec2 Vel = vec2();
 					pPickup = new CPickup(&GameServer()->m_World, POWERUP_ARMOR, 2, 0, 0, true, m_Core.m_Vel*-2.0f, Server()->TickSpeed()*7, Server()->TickSpeed()*1, m_pPlayer->GetCID());
 					m_pPlayer->m_Money -= 2;
+				}
+				else
+				{
+					vec2 Vel = vec2();
+					pPickup = new CPickup(&GameServer()->m_World, POWERUP_ARMOR, 1, 0, 0, true, m_Core.m_Vel*-2.0f, Server()->TickSpeed()*7, Server()->TickSpeed()*1, m_pPlayer->GetCID());
+					m_pPlayer->m_Money = 0;
 				}
 				if (pPickup)
 					pPickup->m_Pos = vec2(m_Pos.x, m_Pos.y);

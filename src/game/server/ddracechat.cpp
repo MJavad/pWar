@@ -40,41 +40,43 @@ void CGameContext::ConJoin(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
 	int ID = pResult->m_ClientID;
-	if (pResult->GetInteger(0) < 1 || pResult->GetInteger(0) > 5){
-		pSelf->SendChatTarget(ID, "You can only join 1-5 team");
+	if (!pSelf->m_apPlayers[ID]->m_IsLoggedIn){
+		pSelf->SendChatTarget(ID, "Please register or login first");
+		return;
+	}
+	if (pResult->GetInteger(0) < 0 || pResult->GetInteger(0) > 4){
+		pSelf->SendChatTarget(ID, "You can only join teams 0~4");
 		return;
 	}
 	if (pSelf->m_apPlayers[ID]->m_LastJoin - pSelf->Server()->Tick() > 0){
-		pSelf->SendChatTarget(ID, "You can join a team that often");
+		pSelf->SendChatTarget(ID, "You can't join a team that often");
 		return;
 	}
 	
 	pSelf->m_apPlayers[ID]->m_LastJoin = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed()*g_Config.m_SvTeamChangeDelay;
 	char aBuf[512];
 	int Num = 0;
-	if (pResult->GetInteger(0) != 0){
-		for (int i=0; i < MAX_CLIENTS; i++){
-			if (pSelf->m_apPlayers[i] && pSelf->m_apPlayers[i]->m_Team2 == pResult->GetInteger(0) && i != ID){
-				Num++;
-				if (Num == 1)
-					str_format(aBuf, sizeof(aBuf), "%s", pSelf->Server()->ClientName(i));
-				else
-					str_format(aBuf, sizeof(aBuf), "%s, %s", aBuf, pSelf->Server()->ClientName(i));
-			}
+	for (int i=0; i < MAX_CLIENTS; i++){
+		if (pSelf->m_apPlayers[i] && pSelf->m_apPlayers[i]->m_Team2 == pResult->GetInteger(0) && i != ID){
+			Num++;
+			if (Num == 1)
+				str_format(aBuf, sizeof(aBuf), "%s", pSelf->Server()->ClientName(i));
+			else
+				str_format(aBuf, sizeof(aBuf), "%s, %s", aBuf, pSelf->Server()->ClientName(i));
 		}
-		char aChatMsg[512];
-		str_format(aChatMsg, sizeof(aChatMsg), "Your team mates : %s", aBuf);
-		if (Num == 0 || pResult->GetInteger(0) == 1){
-			if (Num == 0 && pResult->GetInteger(0) != 1)
-				pSelf->SendChatTarget(ID, "You don't have any team mates now");
-			if (pResult->GetInteger(0) == 1)
-				pSelf->SendChatTarget(ID, "you don't have any team mates In team 1 every time");
-		}
-		else
-			pSelf->SendChatTarget(ID, aChatMsg);
-		pSelf->m_apPlayers[ID]->m_Team2 = pResult->GetInteger(0);
-		pSelf->m_apPlayers[ID]->SetTeam(TEAM_RED);
 	}
+	char aChatMsg[512];
+	str_format(aChatMsg, sizeof(aChatMsg), "Your teammates : %s", aBuf);
+	if (Num == 0 || pResult->GetInteger(0) == 0){
+		if (Num == 0 && pResult->GetInteger(0) != 0)
+			pSelf->SendChatTarget(ID, "You haven't any teammates now");
+		if (pResult->GetInteger(0) == 0)
+			pSelf->SendChatTarget(ID, "You are alone to fight");
+	}
+	else
+		pSelf->SendChatTarget(ID, aChatMsg);
+	pSelf->m_apPlayers[ID]->m_Team2 = pResult->GetInteger(0);
+	pSelf->m_apPlayers[ID]->SetTeam(TEAM_RED);
 	
 }
 
@@ -124,31 +126,6 @@ void CGameContext::ConPay(IConsole::IResult *pResult, void *pUserData)
 	pSelf->SendChatTarget(To, aChatMsg);
 }
 
-/*void CGameContext::ConCRainbow(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	int ID = pResult->m_ClientID;
-	if (pSelf->m_apPlayers[ID]->m_Rainbows)
-	{
-		pSelf->m_apPlayers[ID]->m_Rainbows = false;
-		pSelf->SendChatTarget(pResult->m_ClientID, "You removed your rainbow");
-		return;
-	}
-	if (pSelf->m_apPlayers[ID]->m_Team2 != 4)
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "You can only buy rainbow in team 4 (/join 4)");
-		return;
-	}
-	if (pSelf->m_apPlayers[ID]->m_Money < 20)
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "You don't have enough money (Need 20$)");
-		return;
-	}
-	pSelf->m_apPlayers[ID]->m_Money -= 20;
-	pSelf->m_apPlayers[ID]->m_Rainbows = true;
-	pSelf->SendChatTarget(pResult->m_ClientID, "You have rainbow now");
-}
-*/
 void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 {
 /*	CGameContext *pSelf = (CGameContext *) pUserData;
@@ -195,26 +172,6 @@ void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 	pSelf->SendChatTarget(pResult->m_ClientID, Chat);
 */
 }
-/*
-void CGameContext::ConCFgun(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	int ID = pResult->m_ClientID;
-	if (pSelf->m_apPlayers[ID]->m_Fgun)
-	{
-		pSelf->m_apPlayers[ID]->m_Fgun = false;
-		pSelf->SendChatTarget(pResult->m_ClientID, "You removed your fgun");
-		return;
-	}
-	if (pSelf->m_apPlayers[ID]->m_Money < 300)
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "You don't have enough money (Need 300$)");
-		return;
-	}
-	pSelf->m_apPlayers[ID]->m_Money -= 300;
-	pSelf->m_apPlayers[ID]->m_Fgun = true;
-	pSelf->SendChatTarget(pResult->m_ClientID, "You have fgun now");
-}*/
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
@@ -228,7 +185,23 @@ void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
 			"Ideas By Poya (jiks)");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"For commands say /cmdlist");
+			"-------- How To play: --------");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Use /team <team num> to change your team");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Team 0:      Alone (Enemy with all)");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Team 1~4: With teammates");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Block each other, drop money and collect");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Use /register <pass> to save your money in database");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"Use /login <pass> to login");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"You can pay money to a player with /pay <amount> <player name>");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
+			"TODO: /buy");
 }
 
 void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
@@ -1184,26 +1157,16 @@ void CGameContext::ConJumps(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 {
-	if(!CheckClientID(pResult->GetInteger(0))) return;
 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->GetInteger(0)];
-	if(!pPlayer)
-		return;
-
 	pSelf->MemberList->Register(pResult, pResult->m_ClientID, pResult->GetString(0), pSelf);
 }
 
 void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 {
-	if(!CheckClientID(pResult->GetInteger(0))) return;
 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->GetInteger(0)];
-	if(!pPlayer)
-		return;
-
 	pSelf->MemberList->Login(pResult, pResult->m_ClientID, pResult->GetString(0), pSelf);
+	if (pSelf->m_apPlayers[pResult->m_ClientID]->m_IsLoggedIn && pSelf->m_apPlayers[pResult->m_ClientID]->GetTeam() == TEAM_SPECTATORS)
+		pSelf->m_apPlayers[pResult->m_ClientID]->SetTeam(TEAM_RED);
 }
 
 void CGameContext::ConLogOut(IConsole::IResult *pResult, void *pUserData)
@@ -1225,6 +1188,7 @@ void CGameContext::ConLogOut(IConsole::IResult *pResult, void *pUserData)
 	// logout from membertile
 	pSelf->m_apPlayers[Victim]->m_IsMember = false;
 	pSelf->m_apPlayers[Victim]->m_IsLoggedIn = false;
+	pSelf->m_apPlayers[Victim]->SetTeam(TEAM_SPECTATORS);
 
 	// DDRace level reset
 	pSelf->OnSetAuthed(Victim, pServer->AUTHED_NO);

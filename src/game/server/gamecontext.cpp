@@ -679,7 +679,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
 		SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 
-		SendChatTarget(ClientID, "   XXLDDrace "  XXL_VERSION " by XXLTomate");
+		SendChatTarget(ClientID, "   pWar "  PWAR_VERSION " by Parham & MJavad");
 		SendChatTarget(ClientID, "   DDRace-mod with some extras.");
 		SendChatTarget(ClientID, "   For more info write /info");
 
