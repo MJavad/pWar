@@ -6,6 +6,12 @@
 #define CHAT_COMMAND(name, params, flags, callback, userdata, help)
 #endif
 
+enum
+{
+	BUY_MODE_BOOL=0,
+	BUY_MODE_ADD_INT,
+};
+
 CHAT_COMMAND("credits", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConCredits, this, "Shows the credits of the DDRace mod")
 CHAT_COMMAND("buy", "s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConBuy, this, "Shop")
 CHAT_COMMAND("emote", "?si", CFGFLAG_CHAT|CFGFLAG_SERVER, ConEyeEmote, this, "Sets your tee's eye emote")

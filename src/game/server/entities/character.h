@@ -66,6 +66,9 @@ public:
 	bool IsAlive() const { return m_Alive; }
 	bool IsPaused() const { return m_Paused; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
+	
+	int m_Armor;
+	bool m_Bloody;
 
 private:
 	// player controlling this character
@@ -123,7 +126,6 @@ private:
 	int m_DamageTakenTick;
 
 	int m_Health;
-	int m_Armor;
 
 	// ninja
 	struct
@@ -179,6 +181,7 @@ public:
 	int m_TeamBeforeSuper;
 	int m_FreezeTime;
 	int m_FreezeTick;
+	int m_FreezeTimer;
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
 	enum
@@ -257,7 +260,6 @@ public:
 	bool m_FastReload;
 	int m_LastIndexTile;
 	int m_LastIndexFrontTile;
-	bool m_Bloody;
 	vec2 m_RescuePos;
 	int m_LastRescue;
 	int m_LastRescueSave;

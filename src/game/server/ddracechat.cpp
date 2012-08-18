@@ -1,5 +1,6 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "gamecontext.h"
+#include "ddracechat.h"
 #include <engine/shared/config.h>
 #include <engine/server/server.h>
 #include <game/server/teams.h>
@@ -128,49 +129,75 @@ void CGameContext::ConPay(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 {
-/*	CGameContext *pSelf = (CGameContext *) pUserData;
+	CGameContext *pSelf = (CGameContext *) pUserData;
 	int ID = pResult->m_ClientID;
 	char aBuf[128];str_copy(aBuf, pResult->GetString(0), 128);
 	int Money = 0;
 	char ItemName[128];
 	char Chat[512];
-	bool *M;
-	if (pResult->NumArguments() == 0){
-		pSelf->SendChatTarget(pResult->m_ClientID, "use /buy item | Items : rainbow, fgun");
-		return;
-	}
-	if (str_comp_nocase(aBuf, "rainbow") == 0){
-		Money = 20;
-		str_copy(ItemName, "rainbow", sizeof(ItemName));
-		M = &pSelf->m_apPlayers[ID]->m_Rainbow;
-	}
-	else if (str_comp_nocase(aBuf, "fgun") == 0){
-		Money = 600;
-		str_copy(ItemName, "fgun", sizeof(ItemName));
-		M = &pSelf->m_apPlayers[ID]->m_Fgun;
-	}
-	else{
-		pSelf->SendChatTarget(pResult->m_ClientID, "Item not found ... Items : rainbow, fgun");
-		return;
-	}
-	if (*M)
+	bool *pBool;
+	int *pInt;
+	int Mode = BUY_MODE_BOOL;
+	int Max = 100;
+	if (!pSelf->m_apPlayers[ID]->m_IsLoggedIn)
 	{
-		*M = false;
-		str_format(Chat, 512, "You removed your %s", ItemName);
-		pSelf->SendChatTarget(pResult->m_ClientID, Chat);
+		pSelf->SendChatTarget(ID, "Register or login first");
 		return;
 	}
+	if (!str_comp_nocase(aBuf, "armor"))
+	{
+		Mode = BUY_MODE_ADD_INT;
+		pInt = &pSelf->m_apPlayers[ID]->GetCharacter()->m_Armor;
+		Money = 10;
+		Max = 10;
+		str_copy(ItemName, "armor", 128);
+	}
+	else if (!str_comp_nocase(aBuf, "bloody")) //Added just for test
+	{
+		Mode = BUY_MODE_BOOL;
+		pBool = &pSelf->m_apPlayers[ID]->GetCharacter()->m_Bloody;
+		Money = 10;
+		str_copy(ItemName, "bloody", 128);
+	}
+	else
+	{
+		pSelf->SendChatTarget(ID, "Unknow item.Items : armor, bloody");
+		return;
+	}
+	if (Mode == BUY_MODE_BOOL)
+		if (*pBool)
+		{
+			*pBool = false;
+			str_format(Chat, 512, "You removed your %s", ItemName);
+			pSelf->SendChatTarget(ID, Chat);
+			return;
+		}
 	if (pSelf->m_apPlayers[ID]->m_Money < Money)
 	{
 		str_format(Chat, 512, "You don't have enough money (Need %d$)", Money);
-		pSelf->SendChatTarget(pResult->m_ClientID, Chat);
+		pSelf->SendChatTarget(ID, Chat);
 		return;
 	}
-	pSelf->m_apPlayers[ID]->m_Money -= Money;
-	*M = true;
-	str_format(Chat, 512, "You have %s now", ItemName);
-	pSelf->SendChatTarget(pResult->m_ClientID, Chat);
-*/
+	if (Mode == BUY_MODE_ADD_INT)
+	{
+		if (*pInt >= Max)
+		{
+			str_format(Chat, 512, "You have max of %s", ItemName);
+			pSelf->SendChatTarget(ID, Chat);
+			return;
+		}
+		*pInt = *pInt + 1;
+		pSelf->m_apPlayers[ID]->m_Money -= Money;
+		str_format(Chat, 512, "You bought a/an %s", ItemName);
+		pSelf->SendChatTarget(ID, Chat);
+	}
+	if (Mode == BUY_MODE_BOOL)
+	{
+		*pBool = true;
+		pSelf->m_apPlayers[ID]->m_Money -= Money;
+		str_format(Chat, 512, "You bought %s", ItemName);
+		pSelf->SendChatTarget(ID, Chat);
+	}
 }
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)

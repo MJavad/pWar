@@ -53,6 +53,7 @@ CCharacter::CCharacter(CGameWorld *pWorld)
 	m_ProximityRadius = ms_PhysSize;
 	m_Health = 0;
 	m_Armor = 0;
+	m_FreezeTimer = 0;
 }
 
 void CCharacter::Reset()
@@ -1006,7 +1007,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	pCharacter->m_AmmoCount = 0;
 	pCharacter->m_Health = 0;
-	pCharacter->m_Armor = 0;
+	pCharacter->m_Armor = m_Armor;
 
 	if (m_DeepFreeze)
 	{
@@ -1032,7 +1033,6 @@ void CCharacter::Snap(int SnappingClient)
 		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
 	{
 		pCharacter->m_Health = m_Health;
-		pCharacter->m_Armor = m_Armor;
 		if(m_aWeapons[m_ActiveWeapon].m_Ammo > 0)
 			//pCharacter->m_AmmoCount = m_aWeapons[m_ActiveWeapon].m_Ammo;
 			pCharacter->m_AmmoCount = (!m_FreezeTime)?m_aWeapons[m_ActiveWeapon].m_Ammo:0;
@@ -1783,7 +1783,8 @@ void CCharacter::HandleTiles(int Index)
 
 void CCharacter::DDRaceTick()
 {
-	m_Armor=(m_FreezeTime >= 0)?10-(m_FreezeTime/15):0;
+	if(!(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze))
+		m_FreezeTimer = 0;
 	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
 		m_LastMove = Server()->Tick();
 
@@ -1855,6 +1856,15 @@ bool CCharacter::Freeze(int Seconds)
 {
 	if ((Seconds <= 0 || m_Super || m_FreezeTime == -1 || m_FreezeTime > Seconds * Server()->TickSpeed()) && Seconds != -1)
 		 return false;
+	m_FreezeTimer++;
+	if (m_Armor)
+	{
+		if (m_FreezeTimer % Server()->TickSpeed() == 0 || m_FreezeTimer == 1)
+			m_Armor = clamp(m_Armor-1, 0, 10);
+		m_FreezeTime = 0;
+		m_FreezeTick = 0;
+		return false;
+	}
 	if (m_FreezeTick < Server()->Tick() - Server()->TickSpeed() || Seconds == -1)
 	{
 		for(int i = 0; i < NUM_WEAPONS; i++)
@@ -1862,7 +1872,6 @@ bool CCharacter::Freeze(int Seconds)
 			 {
 				 m_aWeapons[i].m_Ammo = 0;
 			 }
-		m_Armor = 0;
 
 		if (m_BlockedBy != -1 && m_FreezeTime == 0)
 		{
@@ -1906,7 +1915,6 @@ bool CCharacter::UnFreeze()
 {
 	if (m_FreezeTime > 0)
 	{
-		m_Armor=10;
 		for(int i=0;i<NUM_WEAPONS;i++)
 			if(m_aWeapons[i].m_Got)
 			 {
