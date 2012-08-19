@@ -1861,6 +1861,11 @@ bool CCharacter::Freeze(int Seconds)
 	{
 		if (m_FreezeTimer % Server()->TickSpeed() == 0 || m_FreezeTimer == 1)
 			m_Armor = clamp(m_Armor-1, 0, 10);
+		for(int i=0;i<NUM_WEAPONS;i++)
+			if(m_aWeapons[i].m_Got)
+				 m_aWeapons[i].m_Ammo = -1;
+		if(!m_aWeapons[m_ActiveWeapon].m_Got)
+			m_ActiveWeapon = WEAPON_GUN;
 		m_FreezeTime = 0;
 		m_FreezeTick = 0;
 		return false;

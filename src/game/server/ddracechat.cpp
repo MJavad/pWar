@@ -139,6 +139,8 @@ void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 	int *pInt;
 	int Mode = BUY_MODE_BOOL;
 	int Max = 100;
+	int Num = 1;
+	int Weapon = WEAPON_SHOTGUN;
 	if (!pSelf->m_apPlayers[ID]->m_IsLoggedIn)
 	{
 		pSelf->SendChatTarget(ID, "Register or login first");
@@ -151,17 +153,40 @@ void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 		Money = 10;
 		Max = 10;
 		str_copy(ItemName, "armor", 128);
+		if (pResult->NumArguments() == 2)
+			Num = pResult->GetInteger(1);
 	}
 	else if (!str_comp_nocase(aBuf, "bloody")) //Added just for test
 	{
 		Mode = BUY_MODE_BOOL;
 		pBool = &pSelf->m_apPlayers[ID]->GetCharacter()->m_Bloody;
-		Money = 10;
+		Money = 30;
 		str_copy(ItemName, "bloody", 128);
+	}
+	else if (!str_comp_nocase(aBuf, "shotgun"))
+	{
+		Mode = BUY_MODE_ADD_WEAPON;
+		Weapon = WEAPON_SHOTGUN;
+		Money = 10;
+		str_copy(ItemName, "shotgun", 128);
+	}
+	else if (!str_comp_nocase(aBuf, "grenade"))
+	{
+		Mode = BUY_MODE_ADD_WEAPON;
+		Weapon = WEAPON_GRENADE;
+		Money = 15;
+		str_copy(ItemName, "grenade", 128);
+	}
+	else if (!str_comp_nocase(aBuf, "rifle"))
+	{
+		Mode = BUY_MODE_ADD_WEAPON;
+		Weapon = WEAPON_RIFLE;
+		Money = 20;
+		str_copy(ItemName, "rifle", 128);
 	}
 	else
 	{
-		pSelf->SendChatTarget(ID, "Unknow item.Items : armor, bloody");
+		pSelf->SendChatTarget(ID, "Unknow item.Items : armor, bloody, shotgun, grenade, rifle");
 		return;
 	}
 	if (Mode == BUY_MODE_BOOL)
@@ -172,9 +197,26 @@ void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 			pSelf->SendChatTarget(ID, Chat);
 			return;
 		}
-	if (pSelf->m_apPlayers[ID]->m_Money < Money)
+	if (Mode == BUY_MODE_ADD_WEAPON)
 	{
-		str_format(Chat, 512, "You don't have enough money (Need %d$)", Money);
+		if (!pSelf->m_apPlayers[ID]->GetCharacter())
+			return;
+		if (!pSelf->m_apPlayers[ID]->GetCharacter()->GiveWeapon(Weapon, 10))
+		{
+			str_format(Chat, 512, "You can't carry more than one of %s", ItemName);
+			pSelf->SendChatTarget(ID, Chat);
+			return;
+		}
+	}
+	if (Mode == BUY_MODE_ADD_INT && Num > Max-*pInt)
+	{
+		str_format(Chat, 512, "Max of this item is %d", Max);
+		pSelf->SendChatTarget(ID, Chat);
+		return;
+	}
+	if (pSelf->m_apPlayers[ID]->m_Money < Money*Num)
+	{
+		str_format(Chat, 512, "You don't have enough money (Need %d$)", Money*Num);
 		pSelf->SendChatTarget(ID, Chat);
 		return;
 	}
@@ -186,9 +228,16 @@ void CGameContext::ConBuy(IConsole::IResult *pResult, void *pUserData)
 			pSelf->SendChatTarget(ID, Chat);
 			return;
 		}
-		*pInt = *pInt + 1;
+		*pInt = *pInt + Num;
+		pSelf->m_apPlayers[ID]->m_Money -= Money*Num;
+		str_format(Chat, 512, "You bought %d %ss", Num, ItemName);
+		pSelf->SendChatTarget(ID, Chat);
+	}
+	if (Mode == BUY_MODE_ADD_WEAPON)
+	{
 		pSelf->m_apPlayers[ID]->m_Money -= Money;
-		str_format(Chat, 512, "You bought a/an %s", ItemName);
+		pSelf->m_apPlayers[ID]->GetCharacter()->GiveWeapon(Weapon, 10);
+		str_format(Chat, 512, "You bought a %s", ItemName);
 		pSelf->SendChatTarget(ID, Chat);
 	}
 	if (Mode == BUY_MODE_BOOL)

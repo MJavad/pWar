@@ -10,10 +10,11 @@ enum
 {
 	BUY_MODE_BOOL=0,
 	BUY_MODE_ADD_INT,
+	BUY_MODE_ADD_WEAPON,
 };
 
 CHAT_COMMAND("credits", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConCredits, this, "Shows the credits of the DDRace mod")
-CHAT_COMMAND("buy", "s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConBuy, this, "Shop")
+CHAT_COMMAND("buy", "s?i", CFGFLAG_CHAT|CFGFLAG_SERVER, ConBuy, this, "Shop")
 CHAT_COMMAND("emote", "?si", CFGFLAG_CHAT|CFGFLAG_SERVER, ConEyeEmote, this, "Sets your tee's eye emote")
 CHAT_COMMAND("eyeemote", "?s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConSetEyeEmote, this, "Toggles use of standard eye-emotes on/off, eyeemote s, where s = on for on, off for off, toggle for toggle and nothing to show current status")
 CHAT_COMMAND("settings", "?s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConSettings, this, "Shows gameplay information for this server")
